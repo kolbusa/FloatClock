@@ -28,27 +28,34 @@
 
 import Cocoa
 
+func calcWindowPosition(windowSize: CGSize, screenSize: CGSize) -> CGPoint {
+    // top-right only for now
+    return CGPointMake(
+        screenSize.width - windowSize.width,
+        screenSize.height - windowSize.height
+    )
+}
+
 class Clock: NSObject, NSApplicationDelegate {
-    var timer : NSWindow?
+    var window: NSWindow!
 
     func updateWindowPosition() {
-        let windowWidth: CGFloat = 120
-        let windowHeight: CGFloat = 30
-
-        let screenWidth = (NSScreen.main?.frame.width)!
-        let screenHeight = (NSScreen.main?.frame.height)!
-
-        timer?.setFrameOrigin(NSMakePoint(screenWidth - windowWidth, screenHeight - windowHeight))
+        let pos = calcWindowPosition(windowSize: self.window.frame.size,
+                                     screenSize: self.window.screen!.frame.size)
+        window.setFrameOrigin(pos)
     }
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         self.initTimeDisplay()
 
-        NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification,
-                                       object: NSApplication.shared,
-                                       queue: OperationQueue.main) {
-                                       notification -> Void in
-                                       self.updateWindowPosition()}
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: NSApplication.shared,
+            queue: OperationQueue.main
+        ) {
+            notification -> Void in
+            self.updateWindowPosition()
+        }
     }
 
     func initLabel(font: NSFont, format: String, interval: TimeInterval) -> NSTextField {
@@ -62,14 +69,12 @@ class Clock: NSObject, NSApplicationDelegate {
         label.isEditable = false
         label.drawsBackground = false
         label.alignment = .center
-        /* label.textColor = NSColor(red: 0, green: 0, blue: 0, alpha: 1-1/8) */
-        label.textColor = NSColor(red: 1, green: 1, blue: 1, alpha: 1-1/8)
+        label.textColor = NSColor(red: 1, green: 1, blue: 1, alpha: 1 - 1 / 8)
 
         let shadow = NSShadow()
-        /* shadow.shadowColor = NSColor(red: 1, green: 1, blue: 1, alpha: 1-1/8) */
         shadow.shadowColor = NSColor(red: 0, green: 0, blue: 0, alpha: 1)
         shadow.shadowOffset = NSMakeSize(0, 0)
-        shadow.shadowBlurRadius = 1;
+        shadow.shadowBlurRadius = 1
         label.shadow = shadow
 
         let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in
@@ -81,19 +86,22 @@ class Clock: NSObject, NSApplicationDelegate {
         return label
     }
 
-    func initWindow(rect: NSRect, label: NSTextField) -> NSWindow {
+    func initWindow(size: CGSize, label: NSTextField) -> NSWindow {
+        let pos = calcWindowPosition(windowSize: size,
+                                     screenSize: NSScreen.main!.frame.size)
+        let rect = NSMakeRect(pos.x, pos.y, size.width, size.height)
         let window = NSWindow(
-            contentRect : rect,
-            styleMask   : .borderless,
-            backing     : .buffered,
-            defer       : true
+            contentRect: rect,
+            styleMask: .borderless,
+            backing: .buffered,
+            defer: true
+
         )
 
         window.contentView = label
         window.ignoresMouseEvents = true
-        window.level = .floating
-        window.collectionBehavior = .canJoinAllSpaces
-        /* window.backgroundColor = NSColor(red: 0, green: 0, blue: 0, alpha: 1/16) */
+        window.level = NSWindow.Level.floating
+        window.collectionBehavior = NSWindow.CollectionBehavior.canJoinAllSpaces
         window.backgroundColor = NSColor(red: 0, green: 0, blue: 0, alpha: 0)
         window.orderFrontRegardless()
 
@@ -103,31 +111,24 @@ class Clock: NSObject, NSApplicationDelegate {
     func initTimeDisplay() {
         let font = NSFont.monospacedDigitSystemFont(ofSize: 22, weight: .regular)
         let label = self.initLabel(
-            font     : font,
-            format   : "hh:mm",
-            interval : 1
+            font: font,
+            format: "hh:mm",
+            interval: 1
         )
 
-        let screenWidth = (NSScreen.main?.frame.width)!
-        let screenHeight = (NSScreen.main?.frame.height)!
+        let width: CGFloat = 120
+        let height: CGFloat = 30
 
-        let windowWidth: CGFloat = 120
-        let windowHeight: CGFloat = 30
-
-        let rect = NSMakeRect(screenWidth - windowWidth,
-                screenHeight - windowHeight,
-                windowWidth,
-                windowHeight);
-
-        self.timer = self.initWindow(
-            rect     : rect,
-            label    : label
+        self.window = self.initWindow(
+            size: CGSizeMake(width, height),
+            label: label
         )
     }
 }
 
-let app = NSApplication.shared
 let clock = Clock()
+
+let app = NSApplication.shared
 app.delegate = clock
 app.setActivationPolicy(.accessory)
 app.run()
