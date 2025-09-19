@@ -40,9 +40,11 @@ class Clock: NSObject, NSApplicationDelegate {
     var window: NSWindow!
 
     func updateWindowPosition() {
-        let pos = calcWindowPosition(windowSize: self.window.frame.size,
-                                     screenSize: self.window.screen!.frame.size)
-        window.setFrameOrigin(pos)
+        if let screen = window.screen {
+            let pos = calcWindowPosition(windowSize: self.window.frame.size,
+                                         screenSize: screen.frame.size)
+            window.setFrameOrigin(pos)
+        }
     }
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
